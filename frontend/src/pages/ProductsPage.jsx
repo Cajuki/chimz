@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { Search, Filter, X, ChevronDown } from 'lucide-react';
+import { Search, Filter, X } from 'lucide-react';
 import ProductCard from '../components/ProductCard.jsx';
 import './ProductsPage.css';
 
@@ -18,6 +18,8 @@ export default function ProductsPage() {
   const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
+  const sidebarRef = useRef(null);
+  const filterButtonRef = useRef(null);
 
   const category = searchParams.get('category') || '';
   const search = searchParams.get('search') || '';
@@ -41,11 +43,49 @@ export default function ProductsPage() {
       .finally(() => setLoading(false));
   }, [category, search, page, inStock]);
 
+  const isMobile = () => window.matchMedia('(max-width: 900px)').matches;
+
+  useEffect(() => {
+    if (!filterOpen || !isMobile()) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (
+        sidebarRef.current?.contains(event.target) ||
+        filterButtonRef.current?.contains(event.target)
+      ) {
+        return;
+      }
+      setFilterOpen(false);
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') setFilterOpen(false);
+    };
+
+    const mediaQuery = window.matchMedia('(max-width: 900px)');
+    const handleViewportChange = (event) => {
+      if (!event.matches) setFilterOpen(false);
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+    mediaQuery.addEventListener('change', handleViewportChange);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+      mediaQuery.removeEventListener('change', handleViewportChange);
+    };
+  }, [filterOpen]);
+
   const setParam = (key, val) => {
     const p = new URLSearchParams(searchParams);
     if (val) p.set(key, val); else p.delete(key);
     p.delete('page');
     setSearchParams(p);
+    if (filterOpen && isMobile()) setFilterOpen(false);
   };
 
   const handleSearch = (e) => {
@@ -53,7 +93,11 @@ export default function ProductsPage() {
     setParam('search', searchInput);
   };
 
-  const clearAll = () => { setSearchInput(''); setSearchParams({}); };
+  const clearAll = () => {
+    setSearchInput('');
+    setSearchParams({});
+    if (filterOpen && isMobile()) setFilterOpen(false);
+  };
 
   return (
     <div className="products-page">
@@ -68,10 +112,17 @@ export default function ProductsPage() {
 
       <div className="container products-layout">
         {/* Sidebar */}
-        <aside className={`products-sidebar${filterOpen ? ' open' : ''}`}>
+        <aside
+          ref={sidebarRef}
+          id="products-filter-panel"
+          className={`products-sidebar${filterOpen ? ' open' : ''}`}
+          aria-label="Product filters"
+        >
           <div className="sidebar-header">
             <h3>Filter Products</h3>
-            <button className="sidebar-close" onClick={() => setFilterOpen(false)}><X size={20} /></button>
+            <button className="sidebar-close" onClick={() => setFilterOpen(false)} type="button" aria-label="Close filters">
+              <X size={20} />
+            </button>
           </div>
 
           <div className="filter-group">
@@ -103,6 +154,7 @@ export default function ProductsPage() {
             </button>
           )}
         </aside>
+        {filterOpen && <div className="products-sidebar-backdrop" onClick={() => setFilterOpen(false)} />}
 
         {/* Main */}
         <div className="products-main">
@@ -121,7 +173,14 @@ export default function ProductsPage() {
             </form>
             <div className="toolbar-right">
               <span className="result-count">{total} product{total !== 1 ? 's' : ''}</span>
-              <button className="filter-toggle-btn" onClick={() => setFilterOpen(true)}>
+              <button
+                className="filter-toggle-btn"
+                onClick={() => setFilterOpen(prev => !prev)}
+                aria-expanded={filterOpen}
+                aria-controls="products-filter-panel"
+                type="button"
+                ref={filterButtonRef}
+              >
                 <Filter size={16} /> Filters
               </button>
             </div>

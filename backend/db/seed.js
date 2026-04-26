@@ -21,7 +21,12 @@ const seedUsers = async () => {
     VALUES
       ('Admin Medithrex', 'admin@medithrex.co.ke', '0790080903', 'Medithrex Medical Solutions', $1, 'admin'),
       ('Jane Wanjiru',    'jane@hospital.co.ke',   '0712345678', 'Kenyatta National Hospital',  $2, 'user')
-    ON CONFLICT (email) DO NOTHING;
+    ON CONFLICT (email) DO UPDATE
+      SET name = EXCLUDED.name,
+          phone = EXCLUDED.phone,
+          company = EXCLUDED.company,
+          password = EXCLUDED.password,
+          role = EXCLUDED.role;
   `, [adminHash, userHash]);
 
   console.log('  ✅ admin@medithrex.co.ke  /  Admin@2024');

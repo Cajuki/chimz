@@ -124,6 +124,11 @@
   font-size: 0.85rem;
   font-weight: 600;
   letter-spacing: 0.04em;
+  transition: var(--transition);
+}
+.filter-toggle-btn:hover,
+.filter-toggle-btn[aria-expanded="true"] {
+  background: var(--black-3);
 }
 
 .active-filters {
@@ -191,8 +196,21 @@
     overflow-y: auto;
     transition: left 0.3s ease;
     box-shadow: var(--shadow-lg);
+    background: var(--white);
+    overscroll-behavior: contain;
   }
   .products-sidebar.open { left: 0; }
+  .products-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.42);
+    z-index: 480;
+  }
   .sidebar-close { display: flex; }
   .filter-toggle-btn { display: flex; }
+}
+
+@media (max-width: 640px) {
+  .products-sidebar { width: 100%; }
 }

@@ -1,20 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext.jsx';
 import {
   User, Package, FileText, LogOut, ChevronRight,
-  CheckCircle, Clock, Truck, XCircle, Edit3, Save
+  CheckCircle, Clock, Truck, XCircle, Edit3, Save, Menu, X
 } from 'lucide-react';
 import './AccountPage.css';
 
 /* ── Sidebar ─────────────────────────────────────── */
-function Sidebar({ active }) {
+function Sidebar({ active, isOpen, onClose, menuRef }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => { logout(); navigate('/'); };
+  const handleLogout = () => { logout(); navigate('/'); onClose?.(); };
 
   const links = [
     { path: '/account', label: 'Dashboard', icon: <User size={18} /> },
@@ -24,25 +24,37 @@ function Sidebar({ active }) {
   ];
 
   return (
-    <aside className="account-sidebar">
-      <div className="account-user">
-        <div className="account-avatar">{user?.name?.slice(0, 2).toUpperCase()}</div>
-        <div>
-          <strong>{user?.name}</strong>
-          <span>{user?.company || user?.email}</span>
-        </div>
-      </div>
-      <nav className="account-nav">
-        {links.map(l => (
-          <Link key={l.path} to={l.path} className={`account-nav-link${active === l.path ? ' active' : ''}`}>
-            {l.icon} {l.label} <ChevronRight size={14} className="nav-arrow" />
-          </Link>
-        ))}
-        <button className="account-nav-link logout-btn" onClick={handleLogout}>
-          <LogOut size={18} /> Sign Out
+    <>
+      <aside ref={menuRef} className={`account-sidebar${isOpen ? ' open' : ''}`} aria-label="Account navigation">
+        <button className="account-sidebar-close" onClick={onClose} aria-label="Close menu">
+          <X size={18} /> Close
         </button>
-      </nav>
-    </aside>
+
+        <div className="account-user">
+          <div className="account-avatar">{user?.name?.slice(0, 2).toUpperCase()}</div>
+          <div>
+            <strong>{user?.name}</strong>
+            <span>{user?.company || user?.email}</span>
+          </div>
+        </div>
+        <nav className="account-nav">
+          {links.map(l => (
+            <Link
+              key={l.path}
+              to={l.path}
+              className={`account-nav-link${active === l.path ? ' active' : ''}`}
+              onClick={onClose}
+            >
+              {l.icon} {l.label} <ChevronRight size={14} className="nav-arrow" />
+            </Link>
+          ))}
+          <button className="account-nav-link logout-btn" onClick={handleLogout}>
+            <LogOut size={18} /> Sign Out
+          </button>
+        </nav>
+      </aside>
+      {isOpen && <div className="account-sidebar-backdrop" onClick={onClose} />}
+    </>
   );
 }
 
@@ -415,11 +427,32 @@ function Profile() {
 export default function AccountPage() {
   const location = useLocation();
   const path = location.pathname;
+  const { user } = useAuth();
+  const [navOpen, setNavOpen] = useState(false);
+  const sidebarRef = useRef(null);
+  const menuButtonRef = useRef(null);
 
   const activeTab = path.startsWith('/account/orders') ? '/account/orders'
     : path.startsWith('/account/quotes') ? '/account/quotes'
     : path.startsWith('/account/profile') ? '/account/profile'
     : '/account';
+
+  useEffect(() => {
+    if (!navOpen) return undefined;
+
+    const handleOutsideClick = (event) => {
+      if (
+        sidebarRef.current?.contains(event.target) ||
+        menuButtonRef.current?.contains(event.target)
+      ) {
+        return;
+      }
+      setNavOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [navOpen]);
 
   return (
     <div className="account-page">
@@ -427,11 +460,14 @@ export default function AccountPage() {
         <div className="container page-hero-content">
           <p className="section-label">Your Account</p>
           <h1 style={{ fontSize: '2.5rem' }}>My Account</h1>
+          <button className="account-menu-toggle" ref={menuButtonRef} onClick={() => setNavOpen(prev => !prev)}>
+            <Menu size={16} /> {user?.name?.split(' ')[0] || 'Account'}
+          </button>
         </div>
       </div>
 
       <div className="container account-layout">
-        <Sidebar active={activeTab} />
+        <Sidebar active={activeTab} isOpen={navOpen} menuRef={sidebarRef} onClose={() => setNavOpen(false)} />
         <div className="account-main">
           <Routes>
             <Route index element={<Dashboard />} />

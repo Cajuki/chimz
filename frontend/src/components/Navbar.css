@@ -173,7 +173,14 @@
   letter-spacing: 0.04em;
   transition: var(--transition);
 }
-.user-btn:hover { background: var(--black-3); }
+.user-btn:hover,
+.user-btn--open { background: var(--black-3); }
+.user-btn-chevron {
+  transition: transform 0.2s ease;
+}
+.user-btn-chevron.open {
+  transform: rotate(180deg);
+}
 .user-dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -185,6 +192,7 @@
   padding: 8px;
   box-shadow: var(--shadow-lg);
   animation: fadeIn 0.2s ease;
+  z-index: 120;
 }
 .user-dropdown a, .user-dropdown button {
   display: block;
@@ -230,6 +238,10 @@
   .navbar-links { display: none; }
   .mobile-toggle { display: flex; }
   .user-btn span { display: none; }
+  .user-dropdown {
+    right: -8px;
+    min-width: 200px;
+  }
 }
 @media (max-width: 480px) {
   .navbar-topbar .container { gap: 12px; font-size: 0.68rem; }

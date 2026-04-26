@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, User, Menu, X, ChevronDown, Phone } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -15,10 +15,12 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const { count } = useCart();
   const location = useLocation();
   const navigate = useNavigate();
+  const userMenuRef = useRef(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -29,7 +31,31 @@ export default function Navbar() {
   useEffect(() => {
     setMenuOpen(false);
     setProductsOpen(false);
+    setUserMenuOpen(false);
   }, [location]);
+
+  useEffect(() => {
+    if (!userMenuOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (userMenuRef.current?.contains(event.target)) return;
+      setUserMenuOpen(false);
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') setUserMenuOpen(false);
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [userMenuOpen]);
 
   const handleLogout = () => { logout(); navigate('/'); };
 
@@ -87,19 +113,28 @@ export default function Navbar() {
             </Link>
 
             {user ? (
-              <div className="user-menu">
-                <button className="user-btn">
+              <div className="user-menu" ref={userMenuRef}>
+                <button
+                  className={`user-btn${userMenuOpen ? ' user-btn--open' : ''}`}
+                  onClick={() => setUserMenuOpen(prev => !prev)}
+                  aria-expanded={userMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Open account menu"
+                  type="button"
+                >
                   <User size={18} />
                   <span>{user.name.split(' ')[0]}</span>
-                  <ChevronDown size={13} />
+                  <ChevronDown size={13} className={`user-btn-chevron${userMenuOpen ? ' open' : ''}`} />
                 </button>
-                <div className="user-dropdown">
-                  <Link to="/account">My Account</Link>
-                  <Link to="/account/orders">My Orders</Link>
-                  <Link to="/account/quotes">My Quotes</Link>
-                  <hr />
-                  <button onClick={handleLogout}>Sign Out</button>
-                </div>
+                {userMenuOpen && (
+                  <div className="user-dropdown" role="menu">
+                    <Link to="/account" role="menuitem" onClick={() => setUserMenuOpen(false)}>My Account</Link>
+                    <Link to="/account/orders" role="menuitem" onClick={() => setUserMenuOpen(false)}>My Orders</Link>
+                    <Link to="/account/quotes" role="menuitem" onClick={() => setUserMenuOpen(false)}>My Quotes</Link>
+                    <hr />
+                    <button onClick={handleLogout} type="button" role="menuitem">Sign Out</button>
+                  </div>
+                )}
               </div>
             ) : (
               <Link to="/login" className="btn btn-primary btn-sm">Sign In</Link>

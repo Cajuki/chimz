@@ -3,14 +3,20 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const { Pool } = pg;
+const connectionString = process.env.DATABASE_URL || process.env.PG_CONNECTION_STRING;
+const useSsl = process.env.PG_SSL === 'true' || (connectionString && process.env.PG_SSL !== 'false');
 
 const pool = new Pool({
-  host:     process.env.PG_HOST     || 'localhost',
-  port:     parseInt(process.env.PG_PORT || '5432'),
-  database: process.env.PG_DATABASE || 'medithrex',
-  user:     process.env.PG_USER     || 'postgres',
-  password: process.env.PG_PASSWORD || 'postgres',
-  ssl: process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  ...(connectionString
+    ? { connectionString }
+    : {
+        host:     process.env.PG_HOST     || 'localhost',
+        port:     parseInt(process.env.PG_PORT || '5432'),
+        database: process.env.PG_DATABASE || 'medithrex',
+        user:     process.env.PG_USER     || 'postgres',
+        password: process.env.PG_PASSWORD || 'postgres',
+      }),
+  ssl: useSsl ? { rejectUnauthorized: false } : false,
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
